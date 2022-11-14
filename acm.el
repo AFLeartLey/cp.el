@@ -30,14 +30,19 @@
 
 ;;; Code:
 
-(defvar-local acm--source-buffer nil)
-(defvar-local acm--input-buffer nil)
-(defvar-local acm--output-buffer nil)
-(defvar-local acm--window-configuration nil)
+(defvar acm--source-buffer nil)
+(make-variable-buffer-local acm--source-buffer)
+(defvar acm--input-buffer nil)
+(make-variable-buffer-local acm--input-buffer)
+(defvar acm--output-buffer nil)
+(make-variable-buffer-local acm--output-buffer)
+(defvar acm--window-configuration nil)
+(make-variable-buffer-local acm--window-configuration)
 
 (defun acm--base-name ()
+  "Get the file base name of current buffer."
   (with-current-buffer acm--source-buffer
-    (file-name-base (buffer-file-name))))
+    (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
 
 (defun acm--command ()
   "Get the command.  Buffers must be associated before calling this function."
@@ -54,12 +59,13 @@ Note this function does NOT mean visting that input file."
 	(insert-file-contents input-file-name)))))
 
 (defun acm-compile ()
-  "Compile the current file to an executable with the same name."
+  "Compile the current file to an executable with the same name.
+Note that the extension name of the compile output will be `rout`."
   (interactive)
   (with-current-buffer acm--source-buffer
     (let* ((src-file (buffer-file-name))
-	 (exe-file (file-name-base src-file)))
-    (compile (format "g++ -o %s -Wall -ggdb -std=c++14 %s" exe-file src-file)))))
+	 (exe-file (file-name-sans-extension (file-name-nondirectory src-file))))
+    (compile (format "g++ -o %s.rout -Wall -g -std=c++14 %s" exe-file src-file)))))
 
 (defun acm-run ()
   "Execute the executable, using input from the input buffer, writing output to the output buffer."
@@ -92,12 +98,12 @@ Note this function does NOT mean visting that input file."
 
 (defvar acm-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-c") 'acm-compile)
-    (define-key map (kbd "C-c c") 'acm-compile)
-    (define-key map (kbd "C-c r") 'acm-run)
-    (define-key map (kbd "C-c i") 'acm-input)
-    (define-key map (kbd "C-c o") 'acm-output)
-    (define-key map (kbd "C-c w") 'acm-restore-window-configuration)
+    (define-key map (kbd "C-a C-c") 'acm-compile)
+    (define-key map (kbd "C-a c") 'acm-compile)
+    (define-key map (kbd "C-a r") 'acm-run)
+    (define-key map (kbd "C-a i") 'acm-input)
+    (define-key map (kbd "C-a o") 'acm-output)
+    (define-key map (kbd "C-a w") 'acm-restore-window-configuration)
     map))
 
 (define-minor-mode acm-mode
@@ -111,7 +117,7 @@ Note this function does NOT mean visting that input file."
 	(delete-other-windows)
 
 	;; Create window configuration.
-	(let* ((name (file-name-base (buffer-file-name)))
+	(let* ((name (file-name-sans-extension (file-name-nondirectory (buffer-file-name))))
 	       (input-buffer-name (format "*ACM Input for %s*" name))
 	       (output-buffer-name (format "*ACM Output for %s*" name))
 	       (source-buffer (current-buffer))
@@ -159,7 +165,7 @@ Note this function does NOT mean visting that input file."
 
 (defvar acm-io-mode-map
   (let ((map (copy-keymap acm-mode-map)))
-    (define-key map (kbd "C-c s") 'acm-source)
+    (define-key map (kbd "C-a s") 'acm-source)
     map))
 
 (define-derived-mode acm-io-mode fundamental-mode
